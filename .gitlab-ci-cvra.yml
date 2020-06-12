@@ -1,0 +1,27 @@
+# Configuration of CVRA build of buildroot
+#
+image: buildroot/base:20191027.2027
+
+stages:
+  - build
+  - package
+
+build-sdk:
+  stage: build 
+  script:
+    - make cvra_raspi4_defconfig
+    - make sdk -j1 BR2_JLEVEL=1
+  artifacts:
+    paths:
+      - output/images/aarch64-buildroot-linux-gnu_sdk-buildroot.tar.gz
+    expire_in: 6 month
+
+build-docker:
+  stage: package
+  image:
+    name: gcr.io/kaniko-project/executor:debug
+    entrypoint: [""]
+  script:
+    - echo "{\"auths\":{\"https://index.docker.io/v1/\":{\"auth\":\"$CI_HUB_SECRET\"}}}" > /kaniko/.docker/config.json
+    - cat /kaniko/.docker/config.json
+    - /kaniko/executor --context $CI_PROJECT_DIR/output/images --dockerfile $CI_PROJECT_DIR/docker/Dockerfile --destination antoinealb/cvra-sdk:latest
