@@ -23,63 +23,95 @@ dtoverlay=cvra_adafruit_display to the boot config.
 /plugin/;
 
 / {
-	compatible = "brcm,bcm2835", "brcm,bcm2708", "brcm,bcm2709";
+    compatible = "brcm,bcm2835", "brcm,bcm2708", "brcm,bcm2709";
 
     /* First fragment disables the default SPI devices, as we want to add a
      * device to the bus. */
-	fragment@0 {
-		target = <&spi0>;
-		__overlay__ {
-			status = "okay";
+    fragment@0 {
+        target = <&spi0>;
+        __overlay__ {
+            status = "okay";
 
-			spidev@0{
-				status = "disabled";
-			};
+            spidev@0{
+                status = "disabled";
+            };
 
-			spidev@1{
-				status = "disabled";
-			};
-		};
-	};
+            spidev@1{
+                status = "disabled";
+            };
+        };
+    };
 
     /* This fragment reconfigures the GPIO 23 and 24 as outputs */
-	fragment@1 {
-		target = <&gpio>;
-		__overlay__ {
-			adafruit13m_pins: adafruit13m_pins {
-				brcm,pins = <23 24>;
-				brcm,function = <1 1>; /* out */
-			};
-		};
-	};
+    fragment@1 {
+        target = <&gpio>;
+        __overlay__ {
+            adafruit13m_pins: adafruit13m_pins {
+                brcm,pins = <17 23 24>;
+                brcm,function = <0 1 1>; /* out */
+            };
+        };
+    };
 
     /* This fragment adds the display driver on the SPI bus. */
-	fragment@2 {
-		target = <&spi0>;
-		__overlay__ {
-			#address-cells = <1>;
-			#size-cells = <0>;
+    fragment@2 {
+        target = <&spi0>;
+        __overlay__ {
+            #address-cells = <1>;
+            #size-cells = <0>;
 
-			adafruit13m: adafruit13m@0{
-				compatible = "himax,hx8357d";
-				reg = <0>;
-				pinctrl-names = "default";
-				pinctrl-0 = <&adafruit13m_pins>;
-				spi-max-frequency = <40000000>;
-				buswidth = <8>;
-				fps = <10>;
+            adafruit13m: adafruit13m@0{
+                compatible = "himax,hx8357d";
+                reg = <0>;
+                pinctrl-names = "default";
+                pinctrl-0 = <&adafruit13m_pins>;
+                spi-max-frequency = <40000000>;
+                buswidth = <8>;
+                fps = <10>;
                 rotate = <270>;
-				reset-gpios = <&gpio 24 0>;
-				dc-gpios = <&gpio 23 0>;
-				debug = <0>;
-			};
-		};
-	};
+                reset-gpios = <&gpio 24 0>;
+                dc-gpios = <&gpio 23 0>;
+                debug = <0>;
+                bgr;
+            };
+        };
+    };
 
-	__overrides__ {
-		speed =      <&adafruit13m>,"spi-max-frequency:0";
-		rotate =     <&adafruit13m>,"rotate:0";
-		fps =        <&adafruit13m>,"fps:0";
-		debug =      <&adafruit13m>,"debug:0";
-	};
+    fragment@3 {
+        target = <&i2c_arm>;
+        __overlay__ {
+            #address-cells = <1>;
+            #size-cells = <0>;
+            status = "okay";
+
+            stmpe610: stmpe610@41 {
+                    compatible = "st,stmpe610";
+                    reg = <0x41>;
+
+                    interrupts = <17 0x4>;
+                    interrupt-parent = <&gpio>;
+                    interrupt-controller;
+
+                    stmpe_touchscreen {
+                        compatible = "st,stmpe-ts";
+                        st,sample-time = <4>;
+                        st,mod-12b = <1>;
+                        st,ref-sel = <0>;
+                        st,adc-freq = <1>;
+                        st,ave-ctrl = <1>;
+                        st,touch-det-delay = <2>;
+                        st,settling = <2>;
+                        st,fraction-z = <7>;
+                        st,i-drive = <1>;
+                    };
+            };
+        };
+    };
+
+    __overrides__ {
+        speed =      <&adafruit13m>,"spi-max-frequency:0";
+        rotate =     <&adafruit13m>,"rotate:0";
+        fps =        <&adafruit13m>,"fps:0";
+        debug =      <&adafruit13m>,"debug:0";
+    };
 };
