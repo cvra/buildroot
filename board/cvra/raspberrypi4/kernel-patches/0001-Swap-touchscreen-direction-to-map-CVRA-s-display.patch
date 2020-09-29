@@ -1,0 +1,33 @@
+From ba9b1f0a24f95c1c1eb8332a0c253070425226db Mon Sep 17 00:00:00 2001
+From: Antoine Albertelli <antoine@antoinealb.net>
+Date: Thu, 9 Jul 2020 23:54:45 +0200
+Subject: [PATCH] Swap touchscreen direction to map CVRA's display
+
+On the CVRA's Adafruit display, with rotate=270, the touchscreen axes
+are not mapped correctly to the display. This means that calibration
+does not work, and that it is impossible to use a GUI. This commit adds
+a quick and dirty swap to the touchscreen coordinates.
+---
+ drivers/input/touchscreen/stmpe-ts.c | 6 ++++--
+ 1 file changed, 4 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/input/touchscreen/stmpe-ts.c b/drivers/input/touchscreen/stmpe-ts.c
+index 2a78e27b4495..094628051957 100644
+--- a/drivers/input/touchscreen/stmpe-ts.c
++++ b/drivers/input/touchscreen/stmpe-ts.c
+@@ -181,8 +181,10 @@ static irqreturn_t stmpe_ts_handler(int irq, void *data)
+ 	y = ((data_set[1] & 0xf) << 8) | data_set[2];
+ 	z = data_set[3];
+ 
+-	input_report_abs(ts->idev, ABS_X, x);
+-	input_report_abs(ts->idev, ABS_Y, y);
++    /* This is changed for CVRA's display, which behaves strangely. */
++	input_report_abs(ts->idev, ABS_X, y);
++	input_report_abs(ts->idev, ABS_Y, 4096 - x);
++
+ 	input_report_abs(ts->idev, ABS_PRESSURE, z);
+ 	input_report_key(ts->idev, BTN_TOUCH, 1);
+ 	input_sync(ts->idev);
+-- 
+2.27.0
+
