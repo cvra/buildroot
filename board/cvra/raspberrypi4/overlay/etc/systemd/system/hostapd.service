@@ -1,0 +1,13 @@
+[Unit]
+Description=Hostapd IEEE 802.11 AP, IEEE 802.1X/WPA/WPA2/EAP/RADIUS Authenticator
+Wants=network-online.target
+After=systemd-networkd.service
+BindsTo=sys-subsystem-net-devices-wlan0.device
+After=sys-subsystem-net-devices-wlan0.device
+
+[Service]
+Type=simple
+ExecStart=/sbin/hostapd /etc/hostapd.conf
+
+[Install]
+WantedBy=multi-user.target
