@@ -1,0 +1,141 @@
+/* Adafruit display device tree overlay for CVRA robot.
+
+Wiring:
+Brown: GND
+Red: 5V
+Orange: SCK (SPI0)
+Yellow: MOSI (SPI0)
+Green: D/C (GPIO23)
+Blue: Reset (GPIO24)
+
+The chip select is not wired in the prototype, it is statically pulled down.
+
+To build this file:
+
+dtc -@ -I dts -O dtb -o cvra_adafruit_display.dtbo cvra_adafruit_display.dts
+
+Then move cvra_adafruit_display.dtbo on the pi to /boot/overlays and add
+
+dtoverlay=cvra_adafruit_display to the boot config.
+ */
+
+/dts-v1/;
+/plugin/;
+
+/ {
+    compatible = "brcm,bcm2835", "brcm,bcm2708", "brcm,bcm2709";
+
+    /* First fragment disables the default SPI devices, as we want to add a
+     * device to the bus. */
+    fragment@0 {
+        target = <&spi0>;
+        __overlay__ {
+            status = "okay";
+
+            spidev@0{
+                status = "disabled";
+            };
+
+            spidev@1{
+                status = "disabled";
+            };
+        };
+    };
+
+
+    /* This fragment reconfigures the GPIO 23 and 24 as outputs */
+    fragment@1 {
+        target = <&gpio>;
+        __overlay__ {
+            adafruit13m_pins: adafruit13m_pins {
+                brcm,pins = <17 23 24>;
+                brcm,function = <0 1 1>; /* out */
+            };
+        };
+    };
+
+    /* This fragment adds the display driver on the SPI bus. */
+    fragment@2 {
+        target = <&spi0>;
+        __overlay__ {
+            #address-cells = <1>;
+            #size-cells = <0>;
+
+            adafruit13m: adafruit13m@0{
+                compatible = "himax,hx8357d";
+                reg = <0>;
+                pinctrl-names = "default";
+                pinctrl-0 = <&adafruit13m_pins>;
+                spi-max-frequency = <40000000>;
+                buswidth = <8>;
+                fps = <10>;
+                rotate = <270>;
+                reset-gpios = <&gpio 24 0>;
+                dc-gpios = <&gpio 23 0>;
+                debug = <0>;
+                bgr;
+            };
+        };
+    };
+
+    fragment@3 {
+        target = <&i2c_arm>;
+        __overlay__ {
+            #address-cells = <1>;
+            #size-cells = <0>;
+            status = "okay";
+
+            pca: pca@55 {
+                compatible = "nxp,pca9685-pwm";
+                #pwm-cells = <2>;
+                reg = <0x55>;
+            };
+
+            stmpe610: stmpe610@41 {
+                    compatible = "st,stmpe610";
+                    reg = <0x41>;
+
+                    interrupts = <17 0x4>;
+                    interrupt-parent = <&gpio>;
+                    interrupt-controller;
+
+                    stmpe_touchscreen {
+                        compatible = "st,stmpe-ts";
+                        st,sample-time = <4>;
+                        st,mod-12b = <1>;
+                        st,ref-sel = <0>;
+                        st,adc-freq = <1>;
+                        st,ave-ctrl = <1>;
+                        st,touch-det-delay = <2>;
+                        st,settling = <2>;
+                        st,fraction-z = <7>;
+                        st,i-drive = <1>;
+                    };
+            };
+        };
+    };
+
+  fragment@4 {
+        target-path = "/";
+        __overlay__ {
+            pwmleds {
+                compatible = "pwm-leds";
+                onboard {
+                    label = "onboard";
+                    pwms = <&pca 9 6553070>;
+                    max-brightness = <2048>;
+                };
+           };
+        };
+    };
+
+
+
+
+    __overrides__ {
+        speed =      <&adafruit13m>,"spi-max-frequency:0";
+        rotate =     <&adafruit13m>,"rotate:0";
+        fps =        <&adafruit13m>,"fps:0";
+        debug =      <&adafruit13m>,"debug:0";
+    };
+};
