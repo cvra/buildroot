@@ -132,6 +132,13 @@ dtoverlay=cvra_adafruit_display to the boot config.
                         st,i-drive = <1>;
                     };
             };
+
+            ds3231: ds3231@51 {
+                compatible = "maxim,ds3231";
+                reg = <0x68>;
+                #clock-cells = <1>;
+            };
+
         };
     };
 
