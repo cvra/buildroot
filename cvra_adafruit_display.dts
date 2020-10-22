@@ -42,9 +42,20 @@ dtoverlay=cvra_adafruit_display to the boot config.
         };
     };
 
+  fragment@1 {
+        target-path = "/";
+        __overlay__ {
+           canclock: fixedclock@20 {
+               compatible = "fixed-clock";
+               #clock-cells = <0>;
+               clock-frequency = <20000000>;
+               clock-accuracy = <100>;
+           };
+        };
+    };
 
     /* This fragment reconfigures the GPIO 23 and 24 as outputs */
-    fragment@1 {
+    fragment@2 {
         target = <&gpio>;
         __overlay__ {
             adafruit13m_pins: adafruit13m_pins {
@@ -55,15 +66,15 @@ dtoverlay=cvra_adafruit_display to the boot config.
     };
 
     /* This fragment adds the display driver on the SPI bus. */
-    fragment@2 {
+    fragment@3 {
         target = <&spi0>;
         __overlay__ {
             #address-cells = <1>;
             #size-cells = <0>;
 
-            adafruit13m: adafruit13m@0{
+            adafruit13m: adafruit13m@1{
                 compatible = "himax,hx8357d";
-                reg = <0>;
+                reg = <1>;
                 pinctrl-names = "default";
                 pinctrl-0 = <&adafruit13m_pins>;
                 spi-max-frequency = <40000000>;
@@ -75,10 +86,19 @@ dtoverlay=cvra_adafruit_display to the boot config.
                 debug = <0>;
                 bgr;
             };
+
+            can0: can@0 {
+                compatible = "microchip,mcp2515";
+                reg = <0>;
+                spi-max-frequency = <10000000>;
+                clocks = <&canclock>;
+                interrupt-parent = <&gpio>;
+                interrupts = <26 0x2>;
+            };
         };
     };
 
-    fragment@3 {
+    fragment@4 {
         target = <&i2c_arm>;
         __overlay__ {
             #address-cells = <1>;
@@ -95,7 +115,7 @@ dtoverlay=cvra_adafruit_display to the boot config.
                     compatible = "st,stmpe610";
                     reg = <0x41>;
 
-                    interrupts = <17 0x4>;
+                    interrupts = <25 0x4>;
                     interrupt-parent = <&gpio>;
                     interrupt-controller;
 
@@ -115,7 +135,7 @@ dtoverlay=cvra_adafruit_display to the boot config.
         };
     };
 
-  fragment@4 {
+  fragment@5 {
         target-path = "/";
         __overlay__ {
             pwmleds {
@@ -123,14 +143,11 @@ dtoverlay=cvra_adafruit_display to the boot config.
                 onboard {
                     label = "onboard";
                     pwms = <&pca 9 6553070>;
-                    max-brightness = <2048>;
+                    max-brightness = <255>;
                 };
            };
         };
     };
-
-
-
 
     __overrides__ {
         speed =      <&adafruit13m>,"spi-max-frequency:0";
