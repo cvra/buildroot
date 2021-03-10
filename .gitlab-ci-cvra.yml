@@ -10,9 +10,11 @@ build-sdk:
   stage: build
   script:
     - make cvra_raspi4_defconfig
+    - make -j1 BR2_JLEVEL=1
     - make sdk -j1 BR2_JLEVEL=1
   artifacts:
     paths:
+      - output/images/sdcard.img
       - output/images/aarch64-buildroot-linux-gnu_sdk-buildroot.tar.gz
     expire_in: 6 month
 
